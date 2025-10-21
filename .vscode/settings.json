@@ -1,0 +1,31 @@
+{
+    "objectscript.conn": {
+        "active": true,
+        "host": "localhost",
+        "port": 52773,
+        "username": "_SYSTEM",
+        "password": "SYS",
+        "ns": "%SYS",
+        "https": false,
+        "server": "pdb"
+    },
+    "objectscript.export": {
+        "folder": "src",
+        "addCategory": true
+    },
+    "files.associations": {
+        "*.mac": "objectscript",
+        "*.int": "objectscript",
+        "*.inc": "objectscript"
+    },
+    "intersystems.servers": {
+        "pdb": {
+            "webServer": {
+                "scheme": "http",
+                "host": "localhost",
+                "port": 52773
+            },
+            "username": "_SYSTEM"
+        }
+    }
+}

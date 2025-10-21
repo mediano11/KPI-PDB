@@ -1,0 +1,532 @@
+ROUTINE Vehicles
+    ; Використання глобалів та списків
+    
+Main
+    
+    Do AddSampleData
+    Do MainMenu
+    Quit
+
+MainMenu
+    Set exit = 0
+    For {
+        Write !!,"=== ГОЛОВНЕ МЕНЮ ===",!
+        Write "1. Додати транспортний засіб",!
+        Write "2. Переглянути всі засоби",!
+        Write "3. Знайти засіб за характеристиками",!
+        Write "4. Додати поїздку",!
+        Write "5. Переглянути поїздки засобу",!
+        Write "6. Статистика по типу транспорту",!
+        Write "7. Видалити транспортний засіб",!
+        Write "0. Вихід",!
+        Write !,"Оберіть опцію: "
+        Read choice
+        
+        If choice=0 Set exit=1 Quit
+        If choice=1 Do AddVehicle
+        If choice=2 Do ViewAllVehicles
+        If choice=3 Do FindVehicle
+        If choice=4 Do AddTrip
+        If choice=5 Do ViewTrips
+        If choice=6 Do Statistics
+        If choice=7 Do DeleteVehicle
+    }
+    Quit
+
+AddSampleData
+    Write !,"Завантаження демо-даних...",!
+    
+    ; Глобал: ^Vehicles(тип, марка, модель, рік)
+    
+    ; Автомобілі
+    ; Системний список з основними характеристиками
+    Set ^Vehicles("Автомобіль","Toyota","Camry",2022) = $ListBuild("Чорний","Седан","Бензиновий",280,220)
+    ; Рядковий список з обладнанням
+    Set ^Vehicles("Автомобіль","Toyota","Camry",2022,"обладнання") = "Клімат-контроль/ABS/Подушки безпеки/Круїз-контроль"
+    ; Системний список з поїздками (дата, відстань, водій)
+    Set trip1 = $ListBuild("15.10.2025", 120, "Іван Петренко")
+    Set trip2 = $ListBuild("18.10.2025", 85, "Марія Коваленко")
+    Set trip3 = $ListBuild("20.10.2025", 150, "Іван Петренко")
+    Set ^Vehicles("Автомобіль","Toyota","Camry",2022,"поїздки") = $ListBuild(trip1, trip2, trip3)
+    Set ^Vehicles("Автомобіль","Toyota","Camry",2022,"пробіг") = 355
+    
+    Set ^Vehicles("Автомобіль","BMW","X5",2023) = $ListBuild("Білий","Кросовер","Дизельний",340,240)
+    Set ^Vehicles("Автомобіль","BMW","X5",2023,"обладнання") = "Шкіряний салон/Панорамний дах/Парктронік/Автопілот"
+    Set trip4 = $ListBuild("19.10.2025", 200, "Олег Сидоренко")
+    Set trip5 = $ListBuild("21.10.2025", 175, "Олег Сидоренко")
+    Set ^Vehicles("Автомобіль","BMW","X5",2023,"поїздки") = $ListBuild(trip4, trip5)
+    Set ^Vehicles("Автомобіль","BMW","X5",2023,"пробіг") = 375
+    
+    ; Мотоцикли
+    Set ^Vehicles("Мотоцикл","Harley-Davidson","Street 750",2021) = $ListBuild("Червоний","Круїзер","Бензиновий",150,280)
+    Set ^Vehicles("Мотоцикл","Harley-Davidson","Street 750",2021,"обладнання") = "ABS/Круїз-контроль/LED-фари"
+    Set trip6 = $ListBuild("16.10.2025", 95, "Андрій Ткаченко")
+    Set trip7 = $ListBuild("17.10.2025", 110, "Андрій Ткаченко")
+    Set trip8 = $ListBuild("20.10.2025", 65, "Андрій Ткаченко")
+    Set ^Vehicles("Мотоцикл","Harley-Davidson","Street 750",2021,"поїздки") = $ListBuild(trip6, trip7, trip8)
+    Set ^Vehicles("Мотоцикл","Harley-Davidson","Street 750",2021,"пробіг") = 270
+    
+    ; Вантажівки
+    Set ^Vehicles("Вантажівка","Volvo","FH16",2023) = $ListBuild("Синій","Тягач","Дизельний",450,120)
+    Set ^Vehicles("Вантажівка","Volvo","FH16",2023,"обладнання") = "Пневматична підвіска/Спальне місце/GPS"
+    Set trip9 = $ListBuild("14.10.2025", 450, "Петро Мельник")
+    Set trip10 = $ListBuild("17.10.2025", 520, "Петро Мельник")
+    Set trip11 = $ListBuild("19.10.2025", 380, "Василь Кравченко")
+    Set trip12 = $ListBuild("21.10.2025", 410, "Петро Мельник")
+    Set ^Vehicles("Вантажівка","Volvo","FH16",2023,"поїздки") = $ListBuild(trip9, trip10, trip11, trip12)
+    Set ^Vehicles("Вантажівка","Volvo","FH16",2023,"пробіг") = 1760
+    Set ^Vehicles("Вантажівка","Volvo","FH16",2023,"вантажопідйомність") = 25
+    
+    Write "✓ Демо-дані завантажено",!
+    Quit
+
+AddVehicle
+    Write !!,"=== ДОДАВАННЯ ТРАНСПОРТНОГО ЗАСОБУ ===",!
+    
+    Do ShowAvailableTypes
+    Write !,"Тип (Автомобіль/Мотоцикл/Вантажівка): "
+    Read type
+    Write "Марка: "
+    Read brand
+    Write "Модель: "
+    Read model
+    Write "Рік випуску: "
+    Read year
+
+    ; Перевірка чи існує вже такий засіб (використання $DATA)
+    Set exists = $Data(^Vehicles(type,brand,model,year))
+    If exists>0 {
+        Write !,"⚠ Такий транспортний засіб вже існує!",!
+        Quit
+    }
+    
+    Write "Колір: "
+    Read color
+    Write "Тип кузова/категорія: "
+    Read bodyType
+    Write "Тип двигуна: "
+    Read engineType
+    Write "Потужність (к.с.): "
+    Read power
+    Write "Максимальна швидкість (км/год): "
+    Read maxSpeed
+    
+    ; Створення системного списку з характеристиками
+    Set ^Vehicles(type,brand,model,year) = $ListBuild(color,bodyType,engineType,power,maxSpeed)
+    
+    Write "Обладнання (через /): "
+    Read equipment
+    ; Збереження як рядковий список
+    Set ^Vehicles(type,brand,model,year,"обладнання") = equipment
+    
+    ; Ініціалізація порожнього списку поїздок
+    Set ^Vehicles(type,brand,model,year,"поїздки") = $ListBuild()
+    Set ^Vehicles(type,brand,model,year,"пробіг") = 0
+    
+    If type="Вантажівка" {
+        Write "Вантажопідйомність (т): "
+        Read capacity
+        Set ^Vehicles(type,brand,model,year,"вантажопідйомність") = capacity
+    }
+    
+    Write !,"✓ Транспортний засіб успішно додано!",!
+    Quit
+
+ViewAllVehicles
+    ; Перегляд всіх транспортних засобів (використання $ORDER та $QUERY)
+    Write !!,"=== ВСІ ТРАНСПОРТНІ ЗАСОБИ ===",!
+    
+    Set count = 0
+    Set ref = "^Vehicles"
+    
+    ; Використання $QUERY для обходу всього дерева
+    For {
+        Set ref = $Query(@ref)
+        Quit:ref=""
+        
+        ; Використання $QLENGTH для визначення рівня вкладеності
+        Set level = $QLength(ref)
+        
+        If level=4 {
+            Set count = count + 1
+            
+            ; Використання $QSUBSCRIPT для отримання окремих індексів
+            Set type = $QSubscript(ref,1)
+            Set brand = $QSubscript(ref,2)
+            Set model = $QSubscript(ref,3)
+            Set year = $QSubscript(ref,4)
+            
+            Write !,count,". ",type," ",brand," ",model," (",year,")",!
+            
+            Set info = @ref
+            
+            ; Використання $LIST для отримання окремих елементів системного списку
+            Write "   Колір: ",$List(info,1),!
+            Write "   Тип: ",$List(info,2),!
+            Write "   Двигун: ",$List(info,3)," (",$List(info,4)," к.с.)",!
+            Write "   Макс. швидкість: ",$List(info,5)," км/год",!
+            
+            ; Використання $GET для безпечного отримання значення
+            Set mileage = $Get(^Vehicles(type,brand,model,year,"пробіг"),0)
+            Write "   Пробіг: ",mileage," км",!
+        
+            Set equip = $Get(^Vehicles(type,brand,model,year,"обладнання"),"")
+            If equip'="" {
+                Set equipCount = $Length(equip,"/")
+                Write "   Обладнання (",equipCount," од.): ",!
+                
+                ; Використання $PIECE для отримання окремих елементів
+                For i=1:1:equipCount {
+                    Set item = $Piece(equip,"/",i)
+                    Write "     - ",item,!
+                }
+            }
+        }
+    }
+    
+    If count=0 {
+        Write "Немає даних",!
+    }
+    Quit
+
+FindVehicle
+    Write !!,"=== ПОШУК ТРАНСПОРТНОГО ЗАСОБУ ===",!
+    
+    Do ShowAvailableTypes
+    Write !,"Тип: "
+    Read type
+    
+    Do ShowAvailableBrands(type)
+    Write !,"Марка: "
+    Read brand
+
+    Do ShowAvailableModels(type, brand)
+    Write !,"Модель: "
+    Read model
+    
+    Do ShowAvailableYears(type, brand, model)
+    Write !,"Рік: "
+    Read year
+    
+    Set exists = $Data(^Vehicles(type,brand,model,year),value)
+    
+    If exists=0 {
+        Write !," Транспортний засіб не знайдено",!
+        Quit
+    }
+    
+    Write !!," ЗНАЙДЕНО:",!
+    Write type," ",brand," ",model," (",year,")",!!
+    
+    If exists=1!(exists=11) {
+        Set info = ^Vehicles(type,brand,model,year)
+        Write "Колір: ",$List(info,1),!
+        Write "Тип: ",$List(info,2),!
+        Write "Двигун: ",$List(info,3)," (",$List(info,4)," к.с.)",!
+        Write "Макс. швидкість: ",$List(info,5)," км/год",!
+        
+        Set mileage = $Get(^Vehicles(type,brand,model,year,"пробіг"),0)
+        Write "Пробіг: ",mileage," км",!
+        
+        Set equip = $Get(^Vehicles(type,brand,model,year,"обладнання"),"")
+        If equip'="" {
+            Write "Обладнання: ",equip,!
+        }
+    }
+    Quit
+
+AddTrip
+    Write !!,"=== ДОДАВАННЯ ПОЇЗДКИ ===",!
+    
+    Do ShowAvailableTypes
+    Write !,"Тип: "
+    Read type
+    
+    Do ShowAvailableBrands(type)
+    Write !,"Марка: "
+    Read brand
+    
+    Do ShowAvailableModels(type, brand)
+    Write !,"Модель: "
+    Read model
+    
+    Do ShowAvailableYears(type, brand, model)
+    Write !,"Рік: "
+    Read year
+    
+    Set exists = $Data(^Vehicles(type,brand,model,year))
+    If exists=0 {
+        Write !," Транспортний засіб не знайдено",!
+        Quit
+    }
+    
+    Write "Дата поїздки (ДД.МН.РРРР): "
+    Read tripDate
+    Write "Відстань (км): "
+    Read distance
+    Write "Водій: "
+    Read driver
+    
+    ; Створення запису про поїздку як системний список
+    Set tripInfo = $ListBuild(tripDate, distance, driver)
+    
+    ; Отримання поточного списку поїздок
+    Set trips = $Get(^Vehicles(type,brand,model,year,"поїздки"))
+    
+    ; Перевірка чи це список (використання $LISTVALID)
+    If '$ListValid(trips) {
+        Set trips = $ListBuild()
+    }
+    
+    ; Додавання нової поїздки до списку
+    ; Перетворюємо список в рядок, додаємо новий елемент і знову в список
+    Set tripCount = $ListLength(trips)
+    Set $List(trips, tripCount+1) = tripInfo
+    
+    Set ^Vehicles(type,brand,model,year,"поїздки") = trips
+    
+    Set currentMileage = $Get(^Vehicles(type,brand,model,year,"пробіг"),0)
+    Set ^Vehicles(type,brand,model,year,"пробіг") = currentMileage + distance
+    
+    Write !,"✓ Поїздку додано. Загальний пробіг: ",(currentMileage + distance)," км",!
+    Quit
+
+ViewTrips
+    Write !!,"=== ПЕРЕГЛЯД ПОЇЗДОК ===",!
+    
+    Do ShowAvailableTypes
+    Write !,"Тип: "
+    Read type
+    
+    Do ShowAvailableBrands(type)
+    Write !,"Марка: "
+    Read brand
+    
+    Do ShowAvailableModels(type, brand)
+    Write !,"Модель: "
+    Read model
+    
+    Do ShowAvailableYears(type, brand, model)
+    Write !,"Рік: "
+    Read year
+    
+    Set trips = $Get(^Vehicles(type,brand,model,year,"поїздки"))
+    
+    If '$ListValid(trips) {
+        Write !,"Немає поїздок",!
+        Quit
+    }
+    
+    Set tripCount = $ListLength(trips)
+    
+    If tripCount=0 {
+        Write !,"Немає поїздок",!
+        Quit
+    }
+    
+    Write !!,"Всього поїздок: ",tripCount,!
+    Set totalMileage = $Get(^Vehicles(type,brand,model,year,"пробіг"),0)
+    Write "Загальний пробіг: ",totalMileage," км",!!
+    
+
+    For i=1:1:tripCount {
+        Set tripInfo = $ListGet(trips,i,"")
+        If tripInfo'="" {
+            Set tripDate = $List(tripInfo,1)
+            Set distance = $List(tripInfo,2)
+            Set driver = $List(tripInfo,3)
+            
+            Write i,". ",tripDate," - ",distance," км (водій: ",driver,")",!
+        }
+    }
+    Quit
+
+Statistics
+    Write !!,"=== СТАТИСТИКА ПО ТИПУ ===",!
+    
+    Do ShowAvailableTypes
+    Write !,"Тип транспорту: "
+    Read searchType
+    
+    Set count = 0
+    Set totalMileage = 0
+    Set brand = ""
+    
+    ; Використання $ORDER для обходу по конкретному типу
+    For {
+        Set brand = $Order(^Vehicles(searchType,brand))
+        Quit:brand=""
+        
+        Set model = ""
+        For {
+            Set model = $Order(^Vehicles(searchType,brand,model))
+            Quit:model=""
+            
+            Set year = ""
+            For {
+                Set year = $Order(^Vehicles(searchType,brand,model,year))
+                Quit:year=""
+                
+                Set count = count + 1
+                Set mileage = $Get(^Vehicles(searchType,brand,model,year,"пробіг"),0)
+                Set totalMileage = totalMileage + mileage
+                
+                Write count,". ",brand," ",model," (",year,") - ",mileage," км",!
+            }
+        }
+    }
+    
+    If count=0 {
+        Write "Немає транспортних засобів даного типу",!
+    } Else {
+        Write !,"Всього: ",count," од.",!
+        Write "Загальний пробіг: ",totalMileage," км",!
+        Write "Середній пробіг: ",$Justify(totalMileage/count,0,2)," км",!
+    }
+    Quit
+
+DeleteVehicle
+    Write !!,"=== ВИДАЛЕННЯ ТРАНСПОРТНОГО ЗАСОБУ ===",!
+    
+    Do ShowAvailableTypes
+    Write !,"Тип: "
+    Read type
+    
+    Do ShowAvailableBrands(type)
+    Write !,"Марка: "
+    Read brand
+    
+    Do ShowAvailableModels(type, brand)
+    Write !,"Модель: "
+    Read model
+    
+    Do ShowAvailableYears(type, brand, model)
+    Write !,"Рік: "
+    Read year
+    
+    Set exists = $Data(^Vehicles(type,brand,model,year))
+    If exists=0 {
+        Write !," Транспортний засіб не знайдено",!
+        Quit
+    }
+    
+    Write !,"Підтвердіть видалення (Y/N): "
+    Read confirm
+    
+    If $ZConvert(confirm,"U")="Y" {
+        ; Kill видаляє вузол і всі його підвузли
+        Kill ^Vehicles(type,brand,model,year)
+        Write !," Транспортний засіб видалено",!
+    } Else {
+        Write !,"Скасовано",!
+    }
+    Quit
+
+ShowAvailableTypes
+    Set type = ""
+    Set count = 0
+    Set typesList = ""
+    
+    ; Використання $ORDER для отримання всіх унікальних типів
+    For {
+        Set type = $Order(^Vehicles(type))
+        Quit:type=""
+        Set count = count + 1
+        If typesList="" {
+            Set typesList = type
+        } Else {
+            Set typesList = typesList_", "_type
+        }
+    }
+    
+    If count>0 {
+        Write !," Доступні типи ("_count_"): "_typesList,!
+    } Else {
+        Write !," База даних порожня",!
+    }
+    Quit
+
+ShowAvailableBrands(vehicleType)
+    ; Показує всі доступні марки для вказаного типу транспорту
+    ; Параметр: vehicleType - тип транспортного засобу
+    
+    If vehicleType="" Quit
+    
+    Set brand = ""
+    Set count = 0
+    Set brandsList = ""
+    
+    ; Використання $ORDER для отримання всіх марок даного типу
+    For {
+        Set brand = $Order(^Vehicles(vehicleType, brand))
+        Quit:brand=""
+        Set count = count + 1
+        If brandsList="" {
+            Set brandsList = brand
+        } Else {
+            Set brandsList = brandsList_", "_brand
+        }
+    }
+    
+    If count>0 {
+        Write !," Доступні марки для '"_vehicleType_"' ("_count_"): "_brandsList,!
+    } Else {
+        Write !," Немає марок для типу '"_vehicleType_"'",!
+    }
+    Quit
+
+ShowAvailableModels(vehicleType, vehicleBrand)
+    ; Показує всі доступні моделі для вказаної марки
+    ; Параметри: vehicleType - тип, vehicleBrand - марка
+    
+    If vehicleType=""!(vehicleBrand="") Quit
+    
+    Set model = ""
+    Set count = 0
+    Set modelsList = ""
+    
+    For {
+        Set model = $Order(^Vehicles(vehicleType, vehicleBrand, model))
+        Quit:model=""
+        Set count = count + 1
+        If modelsList="" {
+            Set modelsList = model
+        } Else {
+            Set modelsList = modelsList_", "_model
+        }
+    }
+    
+    If count>0 {
+        Write !," Доступні моделі '"_vehicleBrand_"' ("_count_"): "_modelsList,!
+    } Else {
+        Write !," Немає моделей для марки '"_vehicleBrand_"'",!
+    }
+    Quit
+
+ShowAvailableYears(vehicleType, vehicleBrand, vehicleModel)
+    ; Показує всі доступні роки для вказаної моделі
+    ; Параметри: vehicleType - тип, vehicleBrand - марка, vehicleModel - модель
+    
+    If vehicleType=""!(vehicleBrand="")!(vehicleModel="") Quit
+    
+    Set year = ""
+    Set count = 0
+    Set yearsList = ""
+    
+    For {
+        Set year = $Order(^Vehicles(vehicleType, vehicleBrand, vehicleModel, year))
+        Quit:year=""
+        Set count = count + 1
+        If yearsList="" {
+            Set yearsList = year
+        } Else {
+            Set yearsList = yearsList_", "_year
+        }
+    }
+    
+    If count>0 {
+        Write !," Доступні роки '"_vehicleModel_"' ("_count_"): "_yearsList,!
+    } Else {
+        Write !," Немає даних для моделі '"_vehicleModel_"'",!
+    }
+    Quit
