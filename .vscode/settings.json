@@ -1,13 +1,13 @@
 {
     "objectscript.conn": {
-        "active": true,
         "host": "localhost",
         "port": 52773,
         "username": "_SYSTEM",
         "password": "SYS",
         "ns": "%SYS",
         "https": false,
-        "server": "pdb"
+        "server": "pdb",
+        "active": false
     },
     "objectscript.export": {
         "folder": "src",
