@@ -10,7 +10,7 @@
         "active": false
     },
     "objectscript.export": {
-        "folder": "src",
+        "folder": "./",
         "addCategory": true
     },
     "files.associations": {
