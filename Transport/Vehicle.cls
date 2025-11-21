@@ -156,6 +156,52 @@ Method GetDetails() As %String
     Quit info
 }
 
+/// Запит: Отримати транспортні засоби за маркою з інформацією про власника
+/// Використовує оператор -> для доступу до властивостей власника
+Query GetVehiclesByBrand(brandName As %String = "") As %SQLQuery(CONTAINID = 1)
+{
+    SELECT %ID, Brand, Model, VIN, Year, Color, 
+           Owner->Name As OwnerName, 
+           Owner->Email As OwnerEmail,
+           Owner->Phone As OwnerPhone
+    FROM Transport.Vehicle
+    WHERE Brand = :brandName
+    ORDER BY Year DESC
+}
+
+/// Запит: Отримати всі транспортні засоби з інформацією про власників
+/// Демонстрація зовнішнього з'єднання та оператора ->
+Query GetVehiclesWithOwners() As %SQLQuery(CONTAINID = 1)
+{
+    SELECT %ID, Brand, Model, VIN, Year, Color, CurrentMileage,
+           Owner->Name As OwnerName,
+           Owner->Email As OwnerEmail
+    FROM Transport.Vehicle
+    ORDER BY Owner->Name, Brand
+}
+
+/// Метод класу: Підрахунок транспортних засобів за маркою (вбудований SQL - простий вираз)
+ClassMethod CountByBrand(brandName As %String) As %Integer
+{
+    New SQLCODE
+    &sql(SELECT COUNT(*) INTO :count FROM Transport.Vehicle WHERE Brand = :brandName)
+    If SQLCODE = 0 {
+        Quit count
+    }
+    Quit 0
+}
+
+/// Метод класу: Отримати середній пробіг для марки (вбудований SQL - простий вираз)
+ClassMethod GetAverageMileageByBrand(brandName As %String) As %Numeric
+{
+    New SQLCODE
+    &sql(SELECT AVG(CurrentMileage) INTO :avgMileage FROM Transport.Vehicle WHERE Brand = :brandName)
+    If SQLCODE = 0 && (avgMileage '= "") {
+        Quit avgMileage
+    }
+    Quit 0
+}
+
 Storage Default
 {
 <Data name="VehicleDefaultData">
