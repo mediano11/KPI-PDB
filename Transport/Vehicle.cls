@@ -42,6 +42,8 @@ Index OwnerIndex On Owner;
 
 Property FullName As %String(MAXLEN = 220) [ Calculated ];
 
+Property Age As %Integer [ Calculated ];
+
 /// Обчислювана властивість - вік транспорту
 Method AgeGet() As %Integer
 {
@@ -50,10 +52,9 @@ Method AgeGet() As %Integer
 }
 
 /// Обчислювана властивість - повна назва (марка + модель)
-Method FullNameGet(ByRef qVal As %String) As %Status
+Method FullNameGet() As %String
 {
-    Set qVal = ..Brand _ " " _ ..Model
-    Quit $$$OK
+    Quit ..Brand _ " " _ ..Model
 }
 
 /// Запустити транспорт

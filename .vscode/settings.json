@@ -7,7 +7,7 @@
         "ns": "%SYS",
         "https": false,
         "server": "pdb",
-        "active": false
+        "active": true
     },
     "objectscript.export": {
         "folder": "./",
