@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Управління вантажем</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #9C27B0; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #9C27B0; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        .btn { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background-color: #9C27B0; color: white; }
+        .btn-edit { background-color: #2196F3; color: white; }
+        .btn-delete { background-color: #f44336; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Управління вантажем</h1>
+        
+        <a href="cargoitem.csp?action=create" class="btn btn-primary">Додати новий вантаж</a>
+        <a href="cargoitem.csp" class="btn btn-primary">Переглянути весь вантаж</a>
+        
+        <script language="Cache" runat="server">
+        Set action = $Get(%request.Data("action",1))
+        Set id = $Get(%request.Data("id",1))
+        
+        If action = "create" {
+            Write "<h2>Додати новий вантаж</h2>"
+            Write "<form method='post' action='cargoitem.csp'>"
+            Write "<input type='hidden' name='action' value='save'>"
+            Write "<div class='form-group'><label>ID вантажівки:</label><input type='number' name='truckId' required></div>"
+            Write "<div class='form-group'><label>Назва вантажу:</label><input type='text' name='name' required></div>"
+            Write "<div class='form-group'><label>Вага (тонни):</label><input type='number' name='weight' step='0.01' required></div>"
+            Write "<button type='submit' class='btn btn-primary'>Зберегти</button>"
+            Write "<a href='cargoitem.csp' class='btn'>Скасувати</a>"
+            Write "</form>"
+        }
+        ElseIf action = "save" {
+            Set truckId = $Get(%request.Data("truckId",1))
+            Set name = $Get(%request.Data("name",1))
+            Set weight = $Get(%request.Data("weight",1))
+            
+            Set truck = ##class(Transport.Truck).%OpenId(truckId)
+            If '$IsObject(truck) {
+                Write "<div class='error'>Вантажівка не знайдена!</div>"
+            } Else {
+                Set cargo = ##class(Transport.CargoItem).%New()
+                Set cargo.Truck = truck
+                Set cargo.Name = name
+                Set cargo.Weight = weight
+                
+                Set sc = cargo.%Save()
+                
+                If $$$ISOK(sc) {
+                    Write "<div class='success'>Вантаж успішно створено! ID: "_cargo.%Id()_"</div>"
+                } Else {
+                    Write "<div class='error'>Помилка при створенні: "_$System.Status.GetErrorText(sc)_"</div>"
+                }
+            }
+            
+            Write "<a href='cargoitem.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        ElseIf action = "edit" {
+            Set cargo = ##class(Transport.CargoItem).%OpenId(id)
+            If '$IsObject(cargo) {
+                Write "<div class='error'>Вантаж не знайдено!</div>"
+            } Else {
+                Write "<h2>Редагувати вантаж</h2>"
+                Write "<form method='post' action='cargoitem.csp'>"
+                Write "<input type='hidden' name='action' value='update'>"
+                Write "<input type='hidden' name='id' value='"_id_"'>"
+                Write "<div class='form-group'><label>ID вантажівки:</label><input type='number' name='truckId' value='"_cargo.Truck.%Id()_"' required></div>"
+                Write "<div class='form-group'><label>Назва вантажу:</label><input type='text' name='name' value='"_$ZConvert(cargo.Name,"O","HTML")_"' required></div>"
+                Write "<div class='form-group'><label>Вага (тонни):</label><input type='number' name='weight' value='"_cargo.Weight_"' step='0.01' required></div>"
+                Write "<button type='submit' class='btn btn-primary'>Оновити</button>"
+                Write "<a href='cargoitem.csp' class='btn'>Скасувати</a>"
+                Write "</form>"
+            }
+        }
+        ElseIf action = "update" {
+            Set cargo = ##class(Transport.CargoItem).%OpenId(id)
+            If '$IsObject(cargo) {
+                Write "<div class='error'>Вантаж не знайдено!</div>"
+            } Else {
+                Set truckId = $Get(%request.Data("truckId",1))
+                Set name = $Get(%request.Data("name",1))
+                Set weight = $Get(%request.Data("weight",1))
+                
+                Set truck = ##class(Transport.Truck).%OpenId(truckId)
+                If $IsObject(truck) {
+                    Set cargo.Truck = truck
+                }
+                Set cargo.Name = name
+                Set cargo.Weight = weight
+                
+                Set sc = cargo.%Save()
+                
+                If $$$ISOK(sc) {
+                    Write "<div class='success'>Вантаж успішно оновлено!</div>"
+                } Else {
+                    Write "<div class='error'>Помилка при оновленні: "_$System.Status.GetErrorText(sc)_"</div>"
+                }
+            }
+            
+            Write "<a href='cargoitem.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        ElseIf action = "delete" {
+            Set sc = ##class(Transport.CargoItem).%DeleteId(id)
+            If $$$ISOK(sc) {
+                Write "<div class='success'>Вантаж успішно видалено!</div>"
+            } Else {
+                Write "<div class='error'>Помилка при видаленні: "_$System.Status.GetErrorText(sc)_"</div>"
+            }
+            Write "<a href='cargoitem.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        Else {
+            Write "<h2>Список вантажу</h2>"
+            Write "<table>"
+            Write "<tr><th>ID</th><th>Вантажівка</th><th>Назва</th><th>Вага (т)</th><th>Дії</th></tr>"
+            
+            Set rs = ##class(%ResultSet).%New("Transport.CargoItem:Extent")
+            Do rs.Execute()
+            
+            While rs.Next() {
+                Set cargoId = rs.Get("ID")
+                Set cargo = ##class(Transport.CargoItem).%OpenId(cargoId)
+                If $IsObject(cargo) {
+                    Set truckInfo = ""
+                    If $IsObject(cargo.Truck) {
+                        Set truckInfo = cargo.Truck.Brand_" "_cargo.Truck.Model
+                    }
+                    Write "<tr>"
+                    Write "<td>"_cargoId_"</td>"
+                    Write "<td>"_$ZConvert(truckInfo,"O","HTML")_"</td>"
+                    Write "<td>"_$ZConvert(cargo.Name,"O","HTML")_"</td>"
+                    Write "<td>"_cargo.Weight_"</td>"
+                    Write "<td>"
+                    Write "<a href='cargoitem.csp?action=edit&id="_cargoId_"' class='btn btn-edit'>Редагувати</a> "
+                    Write "<a href='http://localhost:57772/csp/cargoitem.csp?action=delete&id="_cargoId_"' class='btn btn-delete' onclick='return confirm('Ви впевнені?')'>Видалити</a>"
+
+                    Write "</td>"
+                    Write "</tr>"
+                }
+            }
+            
+            Write "</table>"
+        }
+        </script>
+    </div>
+</body>
+</html>
+

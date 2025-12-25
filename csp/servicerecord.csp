@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Управління записами обслуговування</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #FF9800; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #FF9800; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        .btn { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background-color: #FF9800; color: white; }
+        .btn-edit { background-color: #2196F3; color: white; }
+        .btn-delete { background-color: #f44336; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Управління записами обслуговування</h1>
+        
+        <a href="servicerecord.csp?action=create" class="btn btn-primary">Додати новий запис</a>
+        <a href="servicerecord.csp" class="btn btn-primary">Переглянути всі</a>
+        
+        <script language="Cache" runat="server">
+        Set action = $Get(%request.Data("action",1))
+        Set id = $Get(%request.Data("id",1))
+        
+        If action = "create" {
+            Write "<h2>Додати новий запис обслуговування</h2>"
+            Write "<form method='post' action='servicerecord.csp'>"
+            Write "<input type='hidden' name='action' value='save'>"
+            Write "<div class='form-group'>"
+            Write "<label>ID транспортного засобу:</label>"
+            Write "<input type='number' name='vehicleId' required>"
+            Write "</div>"
+            Write "<div class='form-group'><label>Дата обслуговування (YYYY-MM-DD):</label><input type='date' name='serviceDate' required></div>"
+            Write "<div class='form-group'><label>Опис робіт:</label><textarea name='description' rows='4'></textarea></div>"
+            Write "<div class='form-group'><label>Вартість:</label><input type='number' name='cost' step='0.01'></div>"
+            Write "<div class='form-group'><label>Виконано:</label><input type='text' name='performedBy'></div>"
+            Write "<div class='form-group'><label>Пробіг:</label><input type='number' name='mileage' step='0.01'></div>"
+            Write "<button type='submit' class='btn btn-primary'>Зберегти</button>"
+            Write "<a href='servicerecord.csp' class='btn'>Скасувати</a>"
+            Write "</form>"
+        }
+        ElseIf action = "save" {
+            Set vehicleId = $Get(%request.Data("vehicleId",1))
+            Set serviceDate = $Get(%request.Data("serviceDate",1))
+            Set description = $Get(%request.Data("description",1))
+            Set cost = $Get(%request.Data("cost",1))
+            Set performedBy = $Get(%request.Data("performedBy",1))
+            Set mileage = $Get(%request.Data("mileage",1))
+            
+            Set vehicle = ##class(Transport.Vehicle).%OpenId(vehicleId)
+            If '$IsObject(vehicle) {
+                Write "<div class='error'>Транспортний засіб не знайдено!</div>"
+            } Else {
+                Set record = ##class(Transport.ServiceRecord).%New()
+                Set record.Vehicle = vehicle
+                Set record.ServiceDate = $ZDateH(serviceDate,3)
+                If description '= "" Set record.Description = description
+                If cost '= "" Set record.Cost = cost
+                If performedBy '= "" Set record.PerformedBy = performedBy
+                If mileage '= "" Set record.Mileage = mileage
+                
+                Set sc = record.%Save()
+                
+                If $$$ISOK(sc) {
+                    Write "<div class='success'>Запис обслуговування успішно створено! ID: "_record.%Id()_"</div>"
+                } Else {
+                    Write "<div class='error'>Помилка при створенні: "_$System.Status.GetErrorText(sc)_"</div>"
+                }
+            }
+            
+            Write "<a href='servicerecord.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        ElseIf action = "edit" {
+            Set record = ##class(Transport.ServiceRecord).%OpenId(id)
+            If '$IsObject(record) {
+                Write "<div class='error'>Запис обслуговування не знайдено!</div>"
+            } Else {
+                Write "<h2>Редагувати запис обслуговування</h2>"
+                Write "<form method='post' action='servicerecord.csp'>"
+                Write "<input type='hidden' name='action' value='update'>"
+                Write "<input type='hidden' name='id' value='"_id_"'>"
+                Write "<div class='form-group'><label>ID транспортного засобу:</label><input type='number' name='vehicleId' value='"_record.Vehicle.%Id()_"' required></div>"
+                Set dateStr = $ZDate(record.ServiceDate,3)
+                Write "<div class='form-group'><label>Дата обслуговування:</label><input type='date' name='serviceDate' value='"_dateStr_"' required></div>"
+                Write "<div class='form-group'><label>Опис робіт:</label><textarea name='description' rows='4'>"_$ZConvert(record.Description,"O","HTML")_"</textarea></div>"
+                Write "<div class='form-group'><label>Вартість:</label><input type='number' name='cost' value='"_record.Cost_"' step='0.01'></div>"
+                Write "<div class='form-group'><label>Виконано:</label><input type='text' name='performedBy' value='"_$ZConvert(record.PerformedBy,"O","HTML")_"'></div>"
+                Write "<div class='form-group'><label>Пробіг:</label><input type='number' name='mileage' value='"_record.Mileage_"' step='0.01'></div>"
+                Write "<button type='submit' class='btn btn-primary'>Оновити</button>"
+                Write "<a href='servicerecord.csp' class='btn'>Скасувати</a>"
+                Write "</form>"
+            }
+        }
+        ElseIf action = "update" {
+            Set record = ##class(Transport.ServiceRecord).%OpenId(id)
+            If '$IsObject(record) {
+                Write "<div class='error'>Запис обслуговування не знайдено!</div>"
+            } Else {
+                Set vehicleId = $Get(%request.Data("vehicleId",1))
+                Set serviceDate = $Get(%request.Data("serviceDate",1))
+                Set description = $Get(%request.Data("description",1))
+                Set cost = $Get(%request.Data("cost",1))
+                Set performedBy = $Get(%request.Data("performedBy",1))
+                Set mileage = $Get(%request.Data("mileage",1))
+                
+                Set vehicle = ##class(Transport.Vehicle).%OpenId(vehicleId)
+                If $IsObject(vehicle) {
+                    Set record.Vehicle = vehicle
+                }
+                Set record.ServiceDate = $ZDateH(serviceDate,3)
+                Set record.Description = description
+                If cost '= "" Set record.Cost = cost
+                Set record.PerformedBy = performedBy
+                If mileage '= "" Set record.Mileage = mileage
+                
+                Set sc = record.%Save()
+                
+                If $$$ISOK(sc) {
+                    Write "<div class='success'>Запис обслуговування успішно оновлено!</div>"
+                } Else {
+                    Write "<div class='error'>Помилка при оновленні: "_$System.Status.GetErrorText(sc)_"</div>"
+                }
+            }
+            
+            Write "<a href='servicerecord.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        ElseIf action = "delete" {
+            Set sc = ##class(Transport.ServiceRecord).%DeleteId(id)
+            If $$$ISOK(sc) {
+                Write "<div class='success'>Запис обслуговування успішно видалено!</div>"
+            } Else {
+                Write "<div class='error'>Помилка при видаленні: "_$System.Status.GetErrorText(sc)_"</div>"
+            }
+            Write "<a href='servicerecord.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        Else {
+            Write "<h2>Список записів обслуговування</h2>"
+            Write "<table>"
+            Write "<tr><th>ID</th><th>Транспорт</th><th>Дата</th><th>Опис</th><th>Вартість</th><th>Виконано</th><th>Пробіг</th><th>Дії</th></tr>"
+            
+            Set rs = ##class(%ResultSet).%New("Transport.ServiceRecord:Extent")
+            Do rs.Execute()
+            
+            While rs.Next() {
+                Set recordId = rs.Get("ID")
+                Set record = ##class(Transport.ServiceRecord).%OpenId(recordId)
+                If $IsObject(record) {
+                    Set vehicleInfo = ""
+                    If $IsObject(record.Vehicle) {
+                        Set vehicleInfo = record.Vehicle.Brand_" "_record.Vehicle.Model
+                    }
+                    Set dateStr = $ZDate(record.ServiceDate,3)
+                    Write "<tr>"
+                    Write "<td>"_recordId_"</td>"
+                    Write "<td>"_$ZConvert(vehicleInfo,"O","HTML")_"</td>"
+                    Write "<td>"_dateStr_"</td>"
+                    Write "<td>"_$ZConvert(record.Description,"O","HTML")_"</td>"
+                    Write "<td>"_record.Cost_"</td>"
+                    Write "<td>"_$ZConvert(record.PerformedBy,"O","HTML")_"</td>"
+                    Write "<td>"_record.Mileage_"</td>"
+                    Write "<td>"
+                    Write "<a href='servicerecord.csp?action=edit&id="_recordId_"' class='btn btn-edit'>Редагувати</a> "
+                    Write "<a href='servicerecord.csp?action=delete&id="_recordId_"' class='btn btn-delete' onclick='return confirm('Ви впевнені?')'>Видалити</a>"
+                    Write "</td>"
+                    Write "</tr>"
+                }
+            }
+            
+            Write "</table>"
+        }
+        </script>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Управління власниками</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #2196F3; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2196F3; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        .btn { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background-color: #2196F3; color: white; }
+        .btn-edit { background-color: #FF9800; color: white; }
+        .btn-delete { background-color: #f44336; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Управління власниками</h1>
+        
+        <a href="owner.csp?action=create" class="btn btn-primary">Додати нового власника</a>
+        <a href="owner.csp" class="btn btn-primary">Переглянути всіх</a>
+        
+        <script language="Cache" runat="server">
+        Set action = $Get(%request.Data("action",1))
+        Set id = $Get(%request.Data("id",1))
+        
+        If action = "create" {
+            Write "<h2>Додати нового власника</h2>"
+            Write "<form method='post' action='owner.csp'>"
+            Write "<input type='hidden' name='action' value='save'>"
+            Write "<div class='form-group'><label>ID:</label><input type='number' name='ownerId' required></div>"
+            Write "<div class='form-group'><label>Ім'я:</label><input type='text' name='name' required></div>"
+            Write "<div class='form-group'><label>Email:</label><input type='email' name='email'></div>"
+            Write "<div class='form-group'><label>Телефон:</label><input type='text' name='phone'></div>"
+            Write "<button type='submit' class='btn btn-primary'>Зберегти</button>"
+            Write "<a href='owner.csp' class='btn'>Скасувати</a>"
+            Write "</form>"
+        }
+        ElseIf action = "save" {
+            Set ownerId = $Get(%request.Data("ownerId",1))
+            Set name = $Get(%request.Data("name",1))
+            Set email = $Get(%request.Data("email",1))
+            Set phone = $Get(%request.Data("phone",1))
+            
+            // Перевірка чи ID вже існує
+            Set existingId = ""
+            &sql(SELECT %ID INTO :existingId FROM Transport.Owner WHERE Id = :ownerId)
+            If existingId '= "" {
+                Write "<div class='error'>Помилка: власник з таким ID вже існує!</div>"
+            } Else {
+                Set owner = ##class(Transport.Owner).%New()
+                Set owner.Id = ownerId
+                Set owner.Name = name
+                If email '= "" Set owner.Email = email
+                If phone '= "" Set owner.Phone = phone
+                
+                Set sc = owner.%Save()
+                
+                If $$$ISOK(sc) {
+                    Write "<div class='success'>Власника успішно створено! ID: "_owner.%Id()_"</div>"
+                } Else {
+                    Write "<div class='error'>Помилка при створенні: "_$System.Status.GetErrorText(sc)_"</div>"
+                }
+            }
+            
+            Write "<a href='owner.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        ElseIf action = "edit" {
+            Set owner = ##class(Transport.Owner).%OpenId(id)
+            If '$IsObject(owner) {
+                Write "<div class='error'>Власник не знайдено!</div>"
+            } Else {
+                Write "<h2>Редагувати власника</h2>"
+                Write "<form method='post' action='owner.csp'>"
+                Write "<input type='hidden' name='action' value='update'>"
+                Write "<input type='hidden' name='id' value='"_id_"'>"
+                Write "<div class='form-group'><label>ID:</label><input type='number' name='ownerId' value='"_owner.Id_"' required></div>"
+                Write "<div class='form-group'><label>Ім'я:</label><input type='text' name='name' value='"_$ZConvert(owner.Name,"O","HTML")_"' required></div>"
+                Write "<div class='form-group'><label>Email:</label><input type='email' name='email' value='"_$ZConvert(owner.Email,"O","HTML")_"'></div>"
+                Write "<div class='form-group'><label>Телефон:</label><input type='text' name='phone' value='"_$ZConvert(owner.Phone,"O","HTML")_"'></div>"
+                Write "<button type='submit' class='btn btn-primary'>Оновити</button>"
+                Write "<a href='owner.csp' class='btn'>Скасувати</a>"
+                Write "</form>"
+            }
+        }
+        ElseIf action = "update" {
+            Set owner = ##class(Transport.Owner).%OpenId(id)
+            If '$IsObject(owner) {
+                Write "<div class='error'>Власник не знайдено!</div>"
+            } Else {
+                Set ownerId = $Get(%request.Data("ownerId",1))
+                Set name = $Get(%request.Data("name",1))
+                Set email = $Get(%request.Data("email",1))
+                Set phone = $Get(%request.Data("phone",1))
+                
+                Set owner.Id = ownerId
+                Set owner.Name = name
+                Set owner.Email = email
+                Set owner.Phone = phone
+                
+                Set sc = owner.%Save()
+                
+                If $$$ISOK(sc) {
+                    Write "<div class='success'>Власника успішно оновлено!</div>"
+                } Else {
+                    Write "<div class='error'>Помилка при оновленні: "_$System.Status.GetErrorText(sc)_"</div>"
+                }
+            }
+            
+            Write "<a href='owner.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        ElseIf action = "delete" {
+            Set sc = ##class(Transport.Owner).%DeleteId(id)
+            If $$$ISOK(sc) {
+                Write "<div class='success'>Власника успішно видалено!</div>"
+            } Else {
+                Write "<div class='error'>Помилка при видаленні: "_$System.Status.GetErrorText(sc)_"</div>"
+            }
+            Write "<a href='owner.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        Else {
+            Write "<h2>Список власників</h2>"
+            Write "<table>"
+            Write "<tr><th>ID</th><th>Ім'я</th><th>Email</th><th>Телефон</th><th>Дії</th></tr>"
+            
+            Set rs = ##class(%ResultSet).%New("Transport.Owner:Extent")
+            Do rs.Execute()
+            
+            While rs.Next() {
+                Set ownerId = rs.Get("ID")
+                Set owner = ##class(Transport.Owner).%OpenId(ownerId)
+                If $IsObject(owner) {
+                    Write "<tr>"
+                    Write "<td>"_owner.Id_"</td>"
+                    Write "<td>"_$ZConvert(owner.Name,"O","HTML")_"</td>"
+                    Write "<td>"_$ZConvert(owner.Email,"O","HTML")_"</td>"
+                    Write "<td>"_$ZConvert(owner.Phone,"O","HTML")_"</td>"
+                    Write "<td>"
+                    Write "<a href='owner.csp?action=edit&id="_ownerId_"' class='btn btn-edit'>Редагувати</a> "
+                    Write "<a href='owner.csp?action=delete&id="_ownerId_"' class='btn btn-delete' onclick='return confirm('Ви впевнені?')'>Видалити</a>"
+                    Write "</td>"
+                    Write "</tr>"
+                }
+            }
+            
+            Write "</table>"
+        }
+        </script>
+    </div>
+</body>
+</html>
+

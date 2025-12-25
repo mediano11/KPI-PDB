@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Управління транспортними засобами</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #4CAF50; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        .btn { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background-color: #4CAF50; color: white; }
+        .btn-edit { background-color: #2196F3; color: white; }
+        .btn-delete { background-color: #f44336; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .error { color: red; margin: 10px 0; }
+        .success { color: green; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Управління транспортними засобами</h1>
+        
+        <a href="vehicle.csp?action=create" class="btn btn-primary">Додати новий транспорт</a>
+        <a href="vehicle.csp" class="btn btn-primary">Переглянути всі</a>
+        
+        <script language="Cache" runat="server">
+        Set action = $Get(%request.Data("action",1))
+        Set id = $Get(%request.Data("id",1))
+        Set vehicleType = $Get(%request.Data("vehicleType",1))
+        
+        If action = "create" {
+            // Показуємо форму створення
+            Write "<h2>Додати новий транспортний засіб</h2>"
+            Write "<form method='post' action='vehicle.csp'>"
+            Write "<input type='hidden' name='action' value='save'>"
+            Write "<div class='form-group'>"
+            Write "<label>Тип транспорту:</label>"
+            Write "<select name='vehicleType' required>"
+            Write "<option value=''>Оберіть тип</option>"
+            Write "<option value='Car'>Автомобіль</option>"
+            Write "<option value='Motorcycle'>Мотоцикл</option>"
+            Write "<option value='Truck'>Вантажівка</option>"
+            Write "</select>"
+            Write "</div>"
+            Write "<div class='form-group'><label>Марка:</label><input type='text' name='brand' required></div>"
+            Write "<div class='form-group'><label>Модель:</label><input type='text' name='model' required></div>"
+            Write "<div class='form-group'><label>VIN:</label><input type='text' name='vin' required></div>"
+            Write "<div class='form-group'><label>Рік:</label><input type='number' name='year' required></div>"
+            Write "<div class='form-group'><label>Колір:</label><input type='text' name='color'></div>"
+            Write "<div class='form-group'><label>Тип двигуна:</label><input type='text' name='engineType'></div>"
+            Write "<div class='form-group'><label>Потужність (к.с.):</label><input type='number' name='horsePower'></div>"
+            Write "<div class='form-group'><label>Тип кузова (для автомобіля):</label><input type='text' name='bodyType'></div>"
+            Write "<div class='form-group'><label>Вантажопідйомність (для вантажівки):</label><input type='number' name='loadCapacity' step='0.01'></div>"
+            Write "<div class='form-group'><label>ID власника:</label><input type='number' name='ownerId'></div>"
+            Write "<button type='submit' class='btn btn-primary'>Зберегти</button>"
+            Write "<a href='vehicle.csp' class='btn'>Скасувати</a>"
+            Write "</form>"
+        }
+        ElseIf action = "save" {
+            // Збереження нового об'єкта
+            Set vehicleType = $Get(%request.Data("vehicleType",1))
+            Set brand = $Get(%request.Data("brand",1))
+            Set model = $Get(%request.Data("model",1))
+            Set vin = $Get(%request.Data("vin",1))
+            Set year = $Get(%request.Data("year",1))
+            Set color = $Get(%request.Data("color",1))
+            Set engineType = $Get(%request.Data("engineType",1))
+            Set horsePower = $Get(%request.Data("horsePower",1))
+            Set bodyType = $Get(%request.Data("bodyType",1))
+            Set loadCapacity = $Get(%request.Data("loadCapacity",1))
+            Set ownerId = $Get(%request.Data("ownerId",1))
+            
+            Set sc = $$$OK
+            
+            // Перевірка чи VIN вже існує
+            Set existingId = ""
+            &sql(SELECT %ID INTO :existingId FROM Transport.Vehicle WHERE VIN = :vin)
+            If existingId '= "" {
+                Write "<div class='error'>Помилка: транспортний засіб з таким VIN вже існує!</div>"
+            } Else {
+                // Створення двигуна
+                Set engine = ##class(Transport.Engine).%New()
+                If engineType '= "" Set engine.Type = engineType
+                If horsePower '= "" Set engine.HorsePower = horsePower
+                
+                // Створення транспортного засобу
+                Set className = "Transport."_vehicleType
+                Set vehicle = $ClassMethod(className, "%New")
+                Set vehicle.Brand = brand
+                Set vehicle.Model = model
+                Set vehicle.VIN = vin
+                Set vehicle.Year = year
+                If color '= "" Set vehicle.Color = color
+                Set vehicle.Engine = engine
+                
+                // Встановлення специфічних властивостей
+                If vehicleType = "Car" && (bodyType '= "") {
+                    Set vehicle.BodyType = bodyType
+                }
+                If vehicleType = "Truck" && (loadCapacity '= "") {
+                    Set vehicle.LoadCapacity = loadCapacity
+                }
+                
+                // Встановлення власника
+                If ownerId '= "" {
+                    Set owner = ##class(Transport.Owner).%OpenId(ownerId)
+                    If $IsObject(owner) {
+                        Set vehicle.Owner = owner
+                    }
+                }
+                
+                Set sc = vehicle.%Save()
+                
+                If $$$ISOK(sc) {
+                    Write "<div class='success'>Транспортний засіб успішно створено! ID: "_vehicle.%Id()_"</div>"
+                } Else {
+                    Write "<div class='error'>Помилка при створенні: "_$System.Status.GetErrorText(sc)_"</div>"
+                }
+            }
+            
+            Write "<a href='vehicle.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        ElseIf action = "edit" {
+            // Показуємо форму редагування
+            Set vehicle = ##class(Transport.Vehicle).%OpenId(id)
+            If '$IsObject(vehicle) {
+                Write "<div class='error'>Транспортний засіб не знайдено!</div>"
+            } Else {
+                Write "<h2>Редагувати транспортний засіб</h2>"
+                Write "<form method='post' action='vehicle.csp'>"
+                Write "<input type='hidden' name='action' value='update'>"
+                Write "<input type='hidden' name='id' value='"_id_"'>"
+                Write "<div class='form-group'><label>Марка:</label><input type='text' name='brand' value='"_$ZConvert(vehicle.Brand,"O","HTML")_"' required></div>"
+                Write "<div class='form-group'><label>Модель:</label><input type='text' name='model' value='"_$ZConvert(vehicle.Model,"O","HTML")_"' required></div>"
+                Write "<div class='form-group'><label>VIN:</label><input type='text' name='vin' value='"_$ZConvert(vehicle.VIN,"O","HTML")_"' required></div>"
+                Write "<div class='form-group'><label>Рік:</label><input type='number' name='year' value='"_vehicle.Year_"' required></div>"
+                Write "<div class='form-group'><label>Колір:</label><input type='text' name='color' value='"_$ZConvert(vehicle.Color,"O","HTML")_"'></div>"
+                If $IsObject(vehicle.Engine) {
+                    Write "<div class='form-group'><label>Тип двигуна:</label><input type='text' name='engineType' value='"_$ZConvert(vehicle.Engine.Type,"O","HTML")_"'></div>"
+                    Write "<div class='form-group'><label>Потужність (к.с.):</label><input type='number' name='horsePower' value='"_vehicle.Engine.HorsePower_"'></div>"
+                }
+                If vehicle.%ClassName() = "Car" {
+                    Write "<div class='form-group'><label>Тип кузова:</label><input type='text' name='bodyType' value='"_$ZConvert(vehicle.BodyType,"O","HTML")_"'></div>"
+                }
+                If vehicle.%ClassName() = "Truck" {
+                    Write "<div class='form-group'><label>Вантажопідйомність:</label><input type='number' name='loadCapacity' value='"_vehicle.LoadCapacity_"' step='0.01'></div>"
+                }
+                If $IsObject(vehicle.Owner) {
+                    Write "<div class='form-group'><label>ID власника:</label><input type='number' name='ownerId' value='"_vehicle.Owner.%Id()_"'></div>"
+                } Else {
+                    Write "<div class='form-group'><label>ID власника:</label><input type='number' name='ownerId'></div>"
+                }
+                Write "<button type='submit' class='btn btn-primary'>Оновити</button>"
+                Write "<a href='vehicle.csp' class='btn'>Скасувати</a>"
+                Write "</form>"
+            }
+        }
+        ElseIf action = "update" {
+            // Оновлення об'єкта
+            Set vehicle = ##class(Transport.Vehicle).%OpenId(id)
+            If '$IsObject(vehicle) {
+                Write "<div class='error'>Транспортний засіб не знайдено!</div>"
+            } Else {
+                Set brand = $Get(%request.Data("brand",1))
+                Set model = $Get(%request.Data("model",1))
+                Set vin = $Get(%request.Data("vin",1))
+                Set year = $Get(%request.Data("year",1))
+                Set color = $Get(%request.Data("color",1))
+                Set engineType = $Get(%request.Data("engineType",1))
+                Set horsePower = $Get(%request.Data("horsePower",1))
+                Set bodyType = $Get(%request.Data("bodyType",1))
+                Set loadCapacity = $Get(%request.Data("loadCapacity",1))
+                Set ownerId = $Get(%request.Data("ownerId",1))
+                
+                Set vehicle.Brand = brand
+                Set vehicle.Model = model
+                Set vehicle.VIN = vin
+                Set vehicle.Year = year
+                If color '= "" Set vehicle.Color = color
+                
+                If $IsObject(vehicle.Engine) {
+                    If engineType '= "" Set vehicle.Engine.Type = engineType
+                    If horsePower '= "" Set vehicle.Engine.HorsePower = horsePower
+                }
+                
+                If vehicle.%ClassName() = "Car" && (bodyType '= "") {
+                    Set vehicle.BodyType = bodyType
+                }
+                If vehicle.%ClassName() = "Truck" && (loadCapacity '= "") {
+                    Set vehicle.LoadCapacity = loadCapacity
+                }
+                
+                If ownerId '= "" {
+                    Set owner = ##class(Transport.Owner).%OpenId(ownerId)
+                    If $IsObject(owner) {
+                        Set vehicle.Owner = owner
+                    }
+                }
+                
+                Set sc = vehicle.%Save()
+                
+                If $$$ISOK(sc) {
+                    Write "<div class='success'>Транспортний засіб успішно оновлено!</div>"
+                } Else {
+                    Write "<div class='error'>Помилка при оновленні: "_$System.Status.GetErrorText(sc)_"</div>"
+                }
+            }
+            
+            Write "<a href='vehicle.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        ElseIf action = "delete" {
+            // Видалення об'єкта
+            Set sc = ##class(Transport.Vehicle).%DeleteId(id)
+            If $$$ISOK(sc) {
+                Write "<div class='success'>Транспортний засіб успішно видалено!</div>"
+            } Else {
+                Write "<div class='error'>Помилка при видаленні: "_$System.Status.GetErrorText(sc)_"</div>"
+            }
+            Write "<a href='vehicle.csp' class='btn btn-primary'>Повернутися до списку</a>"
+        }
+        Else {
+            // Показуємо список всіх транспортних засобів
+            Write "<h2>Список транспортних засобів</h2>"
+            Write "<table>"
+            Write "<tr><th>ID</th><th>Тип</th><th>Марка</th><th>Модель</th><th>VIN</th><th>Рік</th><th>Колір</th><th>Власник</th><th>Дії</th></tr>"
+            
+            Set rs = ##class(%ResultSet).%New("Transport.Vehicle:Extent")
+            Do rs.Execute()
+            
+            While rs.Next() {
+                Set vehicleId = rs.Get("ID")
+                Set vehicle = ##class(Transport.Vehicle).%OpenId(vehicleId)
+                If $IsObject(vehicle) {
+                    Set ownerName = ""
+                    If $IsObject(vehicle.Owner) {
+                        Set ownerName = vehicle.Owner.Name
+                    }
+                    Write "<tr>"
+                    Write "<td>"_vehicleId_"</td>"
+                    Write "<td>"_vehicle.%ClassName()_"</td>"
+                    Write "<td>"_$ZConvert(vehicle.Brand,"O","HTML")_"</td>"
+                    Write "<td>"_$ZConvert(vehicle.Model,"O","HTML")_"</td>"
+                    Write "<td>"_$ZConvert(vehicle.VIN,"O","HTML")_"</td>"
+                    Write "<td>"_vehicle.Year_"</td>"
+                    Write "<td>"_$ZConvert(vehicle.Color,"O","HTML")_"</td>"
+                    Write "<td>"_$ZConvert(ownerName,"O","HTML")_"</td>"
+                    Write "<td>"
+                    Write "<a href='vehicle.csp?action=edit&id="_vehicleId_"' class='btn btn-edit'>Редагувати</a> "
+                    Write "<a href='vehicle.csp?action=delete&id="_vehicleId_"' class='btn btn-delete' onclick='return confirm('Ви впевнені?')'>Видалити</a>"
+                    Write "</td>"
+                    Write "</tr>"
+                }
+            }
+            
+            Write "</table>"
+        }
+        </script>
+    </div>
+</body>
+</html>

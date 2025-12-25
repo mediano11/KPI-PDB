@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RESTful API Клієнт</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #4caf50;
+        padding-bottom: 10px;
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .tab {
+        padding: 10px 20px;
+        background: #e0e0e0;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .tab.active {
+        background: #4caf50;
+        color: white;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .form-group {
+        margin: 15px 0;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        padding: 10px 20px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        opacity: 0.8;
+      }
+      .btn-secondary {
+        background: #2196f3;
+      }
+      .btn-danger {
+        background: #f44336;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 4px;
+        border-left: 4px solid #4caf50;
+      }
+      .error {
+        border-left-color: #f44336;
+        background: #ffebee;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .base-url {
+        margin-bottom: 20px;
+        padding: 10px;
+        background: #e3f2fd;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>RESTful API Клієнт</h1>
+
+      <div class="base-url">
+        <label>Base URL:</label>
+        <input
+          type="text"
+          id="baseUrl"
+          value="http://localhost:52773/csp/transport/rest"
+          placeholder="http://localhost:52773/csp/transport/rest"
+        />
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('vehicle')">
+          Транспорт
+        </button>
+        <button class="tab" onclick="showTab('owner')">Власники</button>
+        <button class="tab" onclick="showTab('servicerecord')">
+          Обслуговування
+        </button>
+        <button class="tab" onclick="showTab('cargoitem')">Вантаж</button>
+      </div>
+
+      <!-- Vehicle Tab -->
+      <div id="vehicle" class="tab-content active">
+        <h2>Транспортні засоби</h2>
+        <div class="form-group">
+          <button onclick="getAllVehicles()">Отримати всі</button>
+          <button onclick="showGetVehicleForm()">Отримати за ID</button>
+          <button onclick="showCreateVehicleForm()">Створити</button>
+          <button onclick="showUpdateVehicleForm()">Оновити</button>
+          <button onclick="showDeleteVehicleForm()" class="btn-danger">
+            Видалити
+          </button>
+        </div>
+        <div id="vehicleForm"></div>
+        <div id="vehicleResult"></div>
+      </div>
+
+      <!-- Owner Tab -->
+      <div id="owner" class="tab-content">
+        <h2>Власники</h2>
+        <div class="form-group">
+          <button onclick="getAllOwners()">Отримати всіх</button>
+          <button onclick="showGetOwnerForm()">Отримати за ID</button>
+          <button onclick="showCreateOwnerForm()">Створити</button>
+          <button onclick="showUpdateOwnerForm()">Оновити</button>
+          <button onclick="showDeleteOwnerForm()" class="btn-danger">
+            Видалити
+          </button>
+        </div>
+        <div id="ownerForm"></div>
+        <div id="ownerResult"></div>
+      </div>
+
+      <!-- ServiceRecord Tab -->
+      <div id="servicerecord" class="tab-content">
+        <h2>Записи обслуговування</h2>
+        <div class="form-group">
+          <button onclick="getAllServiceRecords()">Отримати всі</button>
+          <button onclick="showGetServiceRecordForm()">Отримати за ID</button>
+          <button onclick="showCreateServiceRecordForm()">Створити</button>
+          <button onclick="showUpdateServiceRecordForm()">Оновити</button>
+          <button onclick="showDeleteServiceRecordForm()" class="btn-danger">
+            Видалити
+          </button>
+        </div>
+        <div id="servicerecordForm"></div>
+        <div id="servicerecordResult"></div>
+      </div>
+
+      <!-- CargoItem Tab -->
+      <div id="cargoitem" class="tab-content">
+        <h2>Вантаж</h2>
+        <div class="form-group">
+          <button onclick="getAllCargoItems()">Отримати весь</button>
+          <button onclick="showGetCargoItemForm()">Отримати за ID</button>
+          <button onclick="showCreateCargoItemForm()">Створити</button>
+          <button onclick="showUpdateCargoItemForm()">Оновити</button>
+          <button onclick="showDeleteCargoItemForm()" class="btn-danger">
+            Видалити
+          </button>
+        </div>
+        <div id="cargoitemForm"></div>
+        <div id="cargoitemResult"></div>
+      </div>
+    </div>
+
+    <script>
+      const baseUrl = () => document.getElementById("baseUrl").value;
+
+      function showTab(tabName) {
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((t) => t.classList.remove("active"));
+        event.target.classList.add("active");
+        document.getElementById(tabName).classList.add("active");
+      }
+
+      function showResult(elementId, data, isError = false) {
+        const resultDiv = document.getElementById(elementId);
+        resultDiv.className = "result" + (isError ? " error" : "");
+        resultDiv.innerHTML =
+          "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+      }
+
+      // Vehicle functions
+      async function getAllVehicles() {
+        try {
+          const response = await fetch(baseUrl() + "/vehicle");
+          const data = await response.json();
+          showResult("vehicleResult", data, !response.ok);
+        } catch (error) {
+          showResult("vehicleResult", { error: error.message }, true);
+        }
+      }
+
+      function showGetVehicleForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="vehicleId">
+                    <button onclick="getVehicle()">Отримати</button>
+                </div>
+            `;
+        document.getElementById("vehicleForm").innerHTML = form;
+      }
+
+      async function getVehicle() {
+        const id = document.getElementById("vehicleId").value;
+        try {
+          const response = await fetch(baseUrl() + "/vehicle/" + id);
+          const data = await response.json();
+          showResult("vehicleResult", data, !response.ok);
+        } catch (error) {
+          showResult("vehicleResult", { error: error.message }, true);
+        }
+      }
+
+      function showCreateVehicleForm() {
+        const form = `
+                <div class="form-group">
+                    <label>Тип (Car/Motorcycle/Truck):</label>
+                    <input type="text" id="vType" value="Car">
+                </div>
+                <div class="form-group">
+                    <label>Марка:</label>
+                    <input type="text" id="vBrand">
+                </div>
+                <div class="form-group">
+                    <label>Модель:</label>
+                    <input type="text" id="vModel">
+                </div>
+                <div class="form-group">
+                    <label>VIN:</label>
+                    <input type="text" id="vVin">
+                </div>
+                <div class="form-group">
+                    <label>Рік:</label>
+                    <input type="number" id="vYear">
+                </div>
+                <div class="form-group">
+                    <label>Колір:</label>
+                    <input type="text" id="vColor">
+                </div>
+                <div class="form-group">
+                    <label>Тип двигуна:</label>
+                    <input type="text" id="vEngineType">
+                </div>
+                <div class="form-group">
+                    <label>Потужність:</label>
+                    <input type="number" id="vHorsePower">
+                </div>
+                <button onclick="createVehicle()">Створити</button>
+            `;
+        document.getElementById("vehicleForm").innerHTML = form;
+      }
+
+      async function createVehicle() {
+        const data = {
+          type: document.getElementById("vType").value,
+          brand: document.getElementById("vBrand").value,
+          model: document.getElementById("vModel").value,
+          vin: document.getElementById("vVin").value,
+          year: parseInt(document.getElementById("vYear").value),
+          color: document.getElementById("vColor").value,
+          engine: {
+            type: document.getElementById("vEngineType").value,
+            horsePower: parseInt(document.getElementById("vHorsePower").value),
+          },
+        };
+
+        try {
+          const response = await fetch(baseUrl() + "/vehicle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          showResult("vehicleResult", result, !response.ok);
+        } catch (error) {
+          showResult("vehicleResult", { error: error.message }, true);
+        }
+      }
+
+      function showUpdateVehicleForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="vUpdateId">
+                </div>
+                <div class="form-group">
+                    <label>Марка:</label>
+                    <input type="text" id="vUpdateBrand">
+                </div>
+                <div class="form-group">
+                    <label>Модель:</label>
+                    <input type="text" id="vUpdateModel">
+                </div>
+                <button onclick="updateVehicle()">Оновити</button>
+            `;
+        document.getElementById("vehicleForm").innerHTML = form;
+      }
+
+      async function updateVehicle() {
+        const id = document.getElementById("vUpdateId").value;
+        const data = {
+          brand: document.getElementById("vUpdateBrand").value,
+          model: document.getElementById("vUpdateModel").value,
+        };
+
+        try {
+          const response = await fetch(baseUrl() + "/vehicle/" + id, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          showResult("vehicleResult", result, !response.ok);
+        } catch (error) {
+          showResult("vehicleResult", { error: error.message }, true);
+        }
+      }
+
+      function showDeleteVehicleForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="vDeleteId">
+                    <button onclick="deleteVehicle()" class="btn-danger">Видалити</button>
+                </div>
+            `;
+        document.getElementById("vehicleForm").innerHTML = form;
+      }
+
+      async function deleteVehicle() {
+        const id = document.getElementById("vDeleteId").value;
+        try {
+          const response = await fetch(baseUrl() + "/vehicle/" + id, {
+            method: "DELETE",
+          });
+          const result = await response.json();
+          showResult("vehicleResult", result, !response.ok);
+        } catch (error) {
+          showResult("vehicleResult", { error: error.message }, true);
+        }
+      }
+
+      // Owner functions
+      async function getAllOwners() {
+        try {
+          const response = await fetch(baseUrl() + "/owner");
+          const data = await response.json();
+          showResult("ownerResult", data, !response.ok);
+        } catch (error) {
+          showResult("ownerResult", { error: error.message }, true);
+        }
+      }
+
+      function showGetOwnerForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="ownerId">
+                    <button onclick="getOwner()">Отримати</button>
+                </div>
+            `;
+        document.getElementById("ownerForm").innerHTML = form;
+      }
+
+      async function getOwner() {
+        const id = document.getElementById("ownerId").value;
+        try {
+          const response = await fetch(baseUrl() + "/owner/" + id);
+          const data = await response.json();
+          showResult("ownerResult", data, !response.ok);
+        } catch (error) {
+          showResult("ownerResult", { error: error.message }, true);
+        }
+      }
+
+      function showCreateOwnerForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="oId">
+                </div>
+                <div class="form-group">
+                    <label>Ім'я:</label>
+                    <input type="text" id="oName">
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="oEmail">
+                </div>
+                <div class="form-group">
+                    <label>Телефон:</label>
+                    <input type="text" id="oPhone">
+                </div>
+                <button onclick="createOwner()">Створити</button>
+            `;
+        document.getElementById("ownerForm").innerHTML = form;
+      }
+
+      async function createOwner() {
+        const data = {
+          id: parseInt(document.getElementById("oId").value),
+          name: document.getElementById("oName").value,
+          email: document.getElementById("oEmail").value,
+          phone: document.getElementById("oPhone").value,
+        };
+
+        try {
+          const response = await fetch(baseUrl() + "/owner", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          showResult("ownerResult", result, !response.ok);
+        } catch (error) {
+          showResult("ownerResult", { error: error.message }, true);
+        }
+      }
+
+      function showUpdateOwnerForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="oUpdateId">
+                </div>
+                <div class="form-group">
+                    <label>Ім'я:</label>
+                    <input type="text" id="oUpdateName">
+                </div>
+                <button onclick="updateOwner()">Оновити</button>
+            `;
+        document.getElementById("ownerForm").innerHTML = form;
+      }
+
+      async function updateOwner() {
+        const id = document.getElementById("oUpdateId").value;
+        const data = {
+          name: document.getElementById("oUpdateName").value,
+        };
+
+        try {
+          const response = await fetch(baseUrl() + "/owner/" + id, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          showResult("ownerResult", result, !response.ok);
+        } catch (error) {
+          showResult("ownerResult", { error: error.message }, true);
+        }
+      }
+
+      function showDeleteOwnerForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="oDeleteId">
+                    <button onclick="deleteOwner()" class="btn-danger">Видалити</button>
+                </div>
+            `;
+        document.getElementById("ownerForm").innerHTML = form;
+      }
+
+      async function deleteOwner() {
+        const id = document.getElementById("oDeleteId").value;
+        try {
+          const response = await fetch(baseUrl() + "/owner/" + id, {
+            method: "DELETE",
+          });
+          const result = await response.json();
+          showResult("ownerResult", result, !response.ok);
+        } catch (error) {
+          showResult("ownerResult", { error: error.message }, true);
+        }
+      }
+
+      // ServiceRecord functions
+      async function getAllServiceRecords() {
+        try {
+          const response = await fetch(baseUrl() + "/servicerecord");
+          const data = await response.json();
+          showResult("servicerecordResult", data, !response.ok);
+        } catch (error) {
+          showResult("servicerecordResult", { error: error.message }, true);
+        }
+      }
+
+      function showGetServiceRecordForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="srId">
+                    <button onclick="getServiceRecord()">Отримати</button>
+                </div>
+            `;
+        document.getElementById("servicerecordForm").innerHTML = form;
+      }
+
+      async function getServiceRecord() {
+        const id = document.getElementById("srId").value;
+        try {
+          const response = await fetch(baseUrl() + "/servicerecord/" + id);
+          const data = await response.json();
+          showResult("servicerecordResult", data, !response.ok);
+        } catch (error) {
+          showResult("servicerecordResult", { error: error.message }, true);
+        }
+      }
+
+      function showCreateServiceRecordForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID транспортного засобу:</label>
+                    <input type="number" id="srVehicleId">
+                </div>
+                <div class="form-group">
+                    <label>Дата (YYYY-MM-DD):</label>
+                    <input type="date" id="srDate">
+                </div>
+                <div class="form-group">
+                    <label>Опис:</label>
+                    <textarea id="srDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Вартість:</label>
+                    <input type="number" id="srCost" step="0.01">
+                </div>
+                <button onclick="createServiceRecord()">Створити</button>
+            `;
+        document.getElementById("servicerecordForm").innerHTML = form;
+      }
+
+      async function createServiceRecord() {
+        const data = {
+          vehicleId: parseInt(document.getElementById("srVehicleId").value),
+          serviceDate: document.getElementById("srDate").value,
+          description: document.getElementById("srDescription").value,
+          cost: parseFloat(document.getElementById("srCost").value),
+        };
+
+        try {
+          const response = await fetch(baseUrl() + "/servicerecord", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          showResult("servicerecordResult", result, !response.ok);
+        } catch (error) {
+          showResult("servicerecordResult", { error: error.message }, true);
+        }
+      }
+
+      function showUpdateServiceRecordForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="srUpdateId">
+                </div>
+                <div class="form-group">
+                    <label>Опис:</label>
+                    <textarea id="srUpdateDescription"></textarea>
+                </div>
+                <button onclick="updateServiceRecord()">Оновити</button>
+            `;
+        document.getElementById("servicerecordForm").innerHTML = form;
+      }
+
+      async function updateServiceRecord() {
+        const id = document.getElementById("srUpdateId").value;
+        const data = {
+          description: document.getElementById("srUpdateDescription").value,
+        };
+
+        try {
+          const response = await fetch(baseUrl() + "/servicerecord/" + id, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          showResult("servicerecordResult", result, !response.ok);
+        } catch (error) {
+          showResult("servicerecordResult", { error: error.message }, true);
+        }
+      }
+
+      function showDeleteServiceRecordForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="srDeleteId">
+                    <button onclick="deleteServiceRecord()" class="btn-danger">Видалити</button>
+                </div>
+            `;
+        document.getElementById("servicerecordForm").innerHTML = form;
+      }
+
+      async function deleteServiceRecord() {
+        const id = document.getElementById("srDeleteId").value;
+        try {
+          const response = await fetch(baseUrl() + "/servicerecord/" + id, {
+            method: "DELETE",
+          });
+          const result = await response.json();
+          showResult("servicerecordResult", result, !response.ok);
+        } catch (error) {
+          showResult("servicerecordResult", { error: error.message }, true);
+        }
+      }
+
+      // CargoItem functions
+      async function getAllCargoItems() {
+        try {
+          const response = await fetch(baseUrl() + "/cargoitem");
+          const data = await response.json();
+          showResult("cargoitemResult", data, !response.ok);
+        } catch (error) {
+          showResult("cargoitemResult", { error: error.message }, true);
+        }
+      }
+
+      function showGetCargoItemForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="ciId">
+                    <button onclick="getCargoItem()">Отримати</button>
+                </div>
+            `;
+        document.getElementById("cargoitemForm").innerHTML = form;
+      }
+
+      async function getCargoItem() {
+        const id = document.getElementById("ciId").value;
+        try {
+          const response = await fetch(baseUrl() + "/cargoitem/" + id);
+          const data = await response.json();
+          showResult("cargoitemResult", data, !response.ok);
+        } catch (error) {
+          showResult("cargoitemResult", { error: error.message }, true);
+        }
+      }
+
+      function showCreateCargoItemForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID вантажівки:</label>
+                    <input type="number" id="ciTruckId">
+                </div>
+                <div class="form-group">
+                    <label>Назва:</label>
+                    <input type="text" id="ciName">
+                </div>
+                <div class="form-group">
+                    <label>Вага (т):</label>
+                    <input type="number" id="ciWeight" step="0.01">
+                </div>
+                <button onclick="createCargoItem()">Створити</button>
+            `;
+        document.getElementById("cargoitemForm").innerHTML = form;
+      }
+
+      async function createCargoItem() {
+        const data = {
+          truckId: parseInt(document.getElementById("ciTruckId").value),
+          name: document.getElementById("ciName").value,
+          weight: parseFloat(document.getElementById("ciWeight").value),
+        };
+
+        try {
+          const response = await fetch(baseUrl() + "/cargoitem", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          showResult("cargoitemResult", result, !response.ok);
+        } catch (error) {
+          showResult("cargoitemResult", { error: error.message }, true);
+        }
+      }
+
+      function showUpdateCargoItemForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="ciUpdateId">
+                </div>
+                <div class="form-group">
+                    <label>Назва:</label>
+                    <input type="text" id="ciUpdateName">
+                </div>
+                <button onclick="updateCargoItem()">Оновити</button>
+            `;
+        document.getElementById("cargoitemForm").innerHTML = form;
+      }
+
+      async function updateCargoItem() {
+        const id = document.getElementById("ciUpdateId").value;
+        const data = {
+          name: document.getElementById("ciUpdateName").value,
+        };
+
+        try {
+          const response = await fetch(baseUrl() + "/cargoitem/" + id, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+          const result = await response.json();
+          showResult("cargoitemResult", result, !response.ok);
+        } catch (error) {
+          showResult("cargoitemResult", { error: error.message }, true);
+        }
+      }
+
+      function showDeleteCargoItemForm() {
+        const form = `
+                <div class="form-group">
+                    <label>ID:</label>
+                    <input type="number" id="ciDeleteId">
+                    <button onclick="deleteCargoItem()" class="btn-danger">Видалити</button>
+                </div>
+            `;
+        document.getElementById("cargoitemForm").innerHTML = form;
+      }
+
+      async function deleteCargoItem() {
+        const id = document.getElementById("ciDeleteId").value;
+        try {
+          const response = await fetch(baseUrl() + "/cargoitem/" + id, {
+            method: "DELETE",
+          });
+          const result = await response.json();
+          showResult("cargoitemResult", result, !response.ok);
+        } catch (error) {
+          showResult("cargoitemResult", { error: error.message }, true);
+        }
+      }
+    </script>
+  </body>
+</html>
